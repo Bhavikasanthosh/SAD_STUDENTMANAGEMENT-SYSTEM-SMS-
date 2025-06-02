@@ -20,7 +20,18 @@ function getPublicKeyFromJWKS(kid, keys) {
 async function verifyJWTWithJWKS(token) {}
 
 // Role-based Access Control Middleware
-function verifyRole(requiredRoles) {}
+function verifyRole(requiredRoles) {
+  return async (req,res,next) => {
+    //extract token
+    const token = req.headers.authorization && req.headers.authorization.split(" ")[1];
+    if(!token){
+      return res
+      .status(401)
+      .json({message: "authorization is missing "})
+    }
+    
+  };
+}
 
 function restrictStudentToOwnData(req, res, next) {}
 
