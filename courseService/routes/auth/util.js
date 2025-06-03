@@ -103,9 +103,8 @@ function restrictProfessorToOwnData(req, res, next) {
   }
   next();
 }
- 
+
 module.exports = {
   verifyRole,
   restrictProfessorToOwnData,
-};
- 
+}; 
