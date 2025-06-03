@@ -1,7 +1,10 @@
 const express = require("express");
 const Professor = require("../models/professor");
  
+const { verifyRole, restrictProfessorToOwnData } = require("./auth/util");
+const { ROLES } = require("../../consts");
 const router = express.Router();
+ 
  
 // Create a new professor
 router.post("/", async (req, res) => {
@@ -12,22 +15,17 @@ router.post("/", async (req, res) => {
     if (!name || !email || !phone || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
- 
     // Check for duplicate email or phone
-    const existingProfessor = await Professor.findOne({
-      $or: [{ email }, { phone }],
-    });
+    const existingProfessor = await Professor.findOne({$or: [{ email }, { phone }],});
     if (existingProfessor) {
       return res.status(409).json({ message: "Email or phone already exists" });
     }
  
     // Create and save the professor
     const professor = new Professor({ name, email, phone, password });
-    await professor.save();
- 
-    res
-      .status(201)
-      .json({ message: "Professor created successfully", professor });
+    const savedProfessor = await newProfessor.save();
+    //await professor.save();
+    res.status(201).json({ message: "Professor created successfully", professor:savedProfessor });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server Error", error: error.message });
@@ -35,7 +33,7 @@ router.post("/", async (req, res) => {
 });
  
 // Get all professors
-router.get("/", async (req, res) => {
+router.get("/", verifyRole([ROLES.ADMIN, ROLES.AUTH_SERVICE, ROLES.PROFESSOR]),async (req, res) => {
   try {
     const professors = await Professor.find();//.select("-password"); // Exclude password
     return res.status(200).json(professors);
@@ -46,11 +44,9 @@ router.get("/", async (req, res) => {
 });
  
 // Get a specific professor by ID
-router.get("/:id", async (req, res) => {
+router.get("/:id",verifyRole([ROLES.ADMIN, ROLES.PROFESSOR]),restrictProfessorToOwnData, async (req, res) => {
   try {
-    const professor = await Professor.findById(req.params.id).select(
-      "-password"
-    );
+    const professor = await Professor.findById(req.params.id).select("-password");
  
     if (!professor) {
       return res.status(404).json({ message: "Professor not found" });
@@ -67,7 +63,7 @@ router.get("/:id", async (req, res) => {
 });
  
 // Update a professor
-router.put("/:id", async (req, res) => {
+router.put("/:id",verifyRole([ROLES.ADMIN, ROLES.PROFESSOR]),restrictProfessorToOwnData, async (req, res) => {
   try {
     const { name, email, phone, password } = req.body;
  
@@ -99,7 +95,7 @@ router.put("/:id", async (req, res) => {
 });
  
 // Delete a professor
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verifyRole([ROLES.ADMIN, ROLES.PROFESSOR]),restrictProfessorToOwnData,async (req, res) => {
   try {
     const professor = await Professor.findByIdAndDelete(req.params.id);
  

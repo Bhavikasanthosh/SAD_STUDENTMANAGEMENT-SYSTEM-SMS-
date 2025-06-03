@@ -2,29 +2,103 @@ const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
 const axios = require("axios");
 const { ROLES } = require("../../../consts");
-
+ 
 dotenv.config();
-
-async function fetchJWKS(jku) {}
-
+ 
+/**
+ * Fetch the JWKS from a given URI.
+ * @param {string} jku - The JWKS URI from the JWT header.
+ * @returns {Promise<Array>} - A promise that resolves to the JWKS keys.
+ */
+async function fetchJWKS(jku) {
+  const response = await axios.get(jku);
+  return response.data.keys;
+}
+ 
+/**
+ * Get the public key from JWKS.
+ * @param {string} kid - The key ID from the JWT header.
+ * @param {Array} keys - The JWKS keys.
+ * @returns {string} - The corresponding public key in PEM format.
+ */
 function getPublicKeyFromJWKS(kid, keys) {
   const key = keys.find((k) => k.kid === kid);
-
   if (!key) {
     throw new Error("Unable to find a signing key that matches the 'kid'");
   }
-
   return `-----BEGIN PUBLIC KEY-----\n${key.n}\n-----END PUBLIC KEY-----`;
 }
-
-async function verifyJWTWithJWKS(token) {}
-
+ 
+/**
+ * Verify a JWT token using the JWKS URI in the `jku` header.
+ * @param {string} token - The JWT token to verify.
+ * @returns {Promise<object>} - A promise that resolves to the decoded JWT payload.
+ */
+async function verifyJWTWithJWKS(token) {
+  console.log(token);
+  const decodedHeader = jwt.decode(token, { complete: true }).header;
+  const { kid, alg, jku } = decodedHeader;
+ 
+  if (!kid || !jku) {
+    throw new Error("JWT header is missing 'kid' or 'jku'");
+  }
+ 
+  if (alg !== "RS256") {
+    throw new Error(`Unsupported algorithm: ${alg}`);
+  }
+ 
+  const keys = await fetchJWKS(jku);
+  const publicKey = getPublicKeyFromJWKS(kid, keys);
+ 
+  return jwt.verify(token, publicKey, { algorithms: ["RS256"] });
+}
+ 
 // Role-based Access Control Middleware
-function verifyRole(requiredRoles) {}
+function verifyRole(requiredRoles) {
+  return async (req, res, next) => {
+    const token = req.headers.authorization?.split(" ")[1]; // Extract token from 'Bearer <token>'
+ 
+    if (!token) {
+      return res.status(401).json({ message: "Authorization token is missing" });
+    }
+ 
+    module.exports = (requiredRoles = []) => async (req, res, next) => {
+  try {
+    // 1️⃣ Verify token
+    const verified = await verifyJWTWithJWKS(token);
 
-function restrictStudentToOwnData(req, res, next) {}
+    // 2️⃣ Get the payload no matter which shape comes back
+    const payload = verified.payload ?? verified;   // works for jose OR jsonwebtoken
+    req.user = payload;
 
+    // 3️⃣ Normalise roles into an array
+    const roles = Array.isArray(payload.role)
+      ? payload.role
+      : payload.role ? [payload.role] : [];
+
+    // 4️⃣ Authorise
+    if (requiredRoles.length === 0 || requiredRoles.some(r => roles.includes(r))) {
+      return next();
+    }
+    return res.status(403).json({ message: 'Access forbidden: Insufficient role' });
+  } catch (err) {
+    return res.status(403).json({ message: 'Invalid or expired token' });
+  }
+};
+
+ 
+function restrictProfessorToOwnData(req, res, next) {
+  if (
+    req.user.payload.roles.includes(ROLES.PROFESSOR) &&req.user.payload.id !== req.params.id) {
+    return res.status(403).json({message: "Access forbidden: You can only access your own data",
+    });
+  }
+  next();
+}
+ 
 module.exports = {
   verifyRole,
-  restrictStudentToOwnData,
+  restrictProfessorToOwnData,
 };
+ 
+ 
