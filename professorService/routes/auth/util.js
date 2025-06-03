@@ -62,34 +62,30 @@ function verifyRole(requiredRoles) {
       return res.status(401).json({ message: "Authorization token is missing" });
     }
  
-    module.exports = (requiredRoles = []) => async (req, res, next) => {
-  try {
-    // 1️⃣ Verify token
-    const verified = await verifyJWTWithJWKS(token);
-
-    // 2️⃣ Get the payload no matter which shape comes back
-    const payload = verified.payload ?? verified;   // works for jose OR jsonwebtoken
-    req.user = payload;
-
-    // 3️⃣ Normalise roles into an array
-    const roles = Array.isArray(payload.role)
-      ? payload.role
-      : payload.role ? [payload.role] : [];
-
-    // 4️⃣ Authorise
-    if (requiredRoles.length === 0 || requiredRoles.some(r => roles.includes(r))) {
-      return next();
+    try {
+      // Step 1: Verify the JWT token using JWKS
+      const decoded = await verifyJWTWithJWKS(token); // Decode the token and get the payload
+      req.user = decoded; // Attach the decoded payload (user data) to the request object
+ 
+      // Step 2: Check if the user has any of the required roles
+      const userRoles = req.user.payload.role || [];
+      const hasRequiredRole = requiredRoles.some((role) =>userRoles.includes(role)
+      );
+      if (hasRequiredRole) {
+        return next(); // User has at least one of the required roles, so proceed
+      } else {
+        return res.status(403).json({ message: "Access forbidden: Insufficient role" });
+      }
+    } catch (error) {
+      console.error(error);
+      return res.status(403).json({ message: "Invalid or expired token", error: error.message });
     }
-    return res.status(403).json({ message: 'Access forbidden: Insufficient role' });
-  } catch (err) {
-    return res.status(403).json({ message: 'Invalid or expired token' });
-  }
-};
-
+  };
+}
  
 function restrictProfessorToOwnData(req, res, next) {
   if (
-    req.user.payload.roles.includes(ROLES.PROFESSOR) &&req.user.payload.id !== req.params.id) {
+    req.user.payload.role.includes(ROLES.PROFESSOR) && req.user.payload.id !== req.params.id) {
     return res.status(403).json({message: "Access forbidden: You can only access your own data",
     });
   }

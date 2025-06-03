@@ -23,7 +23,7 @@ router.post("/", async (req, res) => {
  
     // Create and save the professor
     const professor = new Professor({ name, email, phone, password });
-    const savedProfessor = await newProfessor.save();
+    const savedProfessor = await professor.save();
     //await professor.save();
     res.status(201).json({ message: "Professor created successfully", professor:savedProfessor });
   } catch (error) {
@@ -33,7 +33,7 @@ router.post("/", async (req, res) => {
 });
  
 // Get all professors
-router.get("/", verifyRole([ROLES.ADMIN, ROLES.AUTH_SERVICE, ROLES.PROFESSOR]),async (req, res) => {
+router.get("/", verifyRole([ROLES.ADMIN, ROLES.AUTH_SERVICE,ROLES.PROFESSOR]),async (req, res) => {
   try {
     const professors = await Professor.find();//.select("-password"); // Exclude password
     return res.status(200).json(professors);
@@ -73,10 +73,7 @@ router.put("/:id",verifyRole([ROLES.ADMIN, ROLES.PROFESSOR]),restrictProfessorTo
       updatedData.password = await bcrypt.hash(password, salt);
     }
  
-    const professor = await Professor.findByIdAndUpdate(
-      req.params.id,
-      updatedData,
-      {
+    const professor = await Professor.findByIdAndUpdate( req.params.id,updatedData,{
         new: true,
       }
     );
@@ -85,9 +82,7 @@ router.put("/:id",verifyRole([ROLES.ADMIN, ROLES.PROFESSOR]),restrictProfessorTo
       return res.status(404).json({ message: "Professor not found" });
     }
  
-    res
-      .status(200)
-      .json({ message: "Professor updated successfully", professor });
+    res.status(200).json({ message: "Professor updated successfully", professor });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server Error", error: error.message });
@@ -103,9 +98,7 @@ router.delete("/:id", verifyRole([ROLES.ADMIN, ROLES.PROFESSOR]),restrictProfess
       return res.status(404).json({ message: "Professor not found" });
     }
  
-    res
-      .status(200)
-      .json({ message: "Professor deleted successfully", professor });
+    res.status(200).json({ message: "Professor deleted successfully", professor });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server Error", error: error.message });
