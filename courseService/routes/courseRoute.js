@@ -12,7 +12,7 @@ router.post(
   verifyRole([ROLES.ADMIN, ROLES.PROFESSOR]),
   async (req, res) => {
     try {
-      req.body.createdBy = req.user.id;
+      req.body.createdBy = req.user.payload.id;
       const course = new Course(req.body);
       await course.save();
       res.status(201).json(course);
@@ -112,5 +112,3 @@ router.delete(
 );
  
 module.exports = router;
- 
- 

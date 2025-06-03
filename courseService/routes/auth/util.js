@@ -72,10 +72,8 @@ function verifyRole(requiredRoles) {
       req.user = decoded; // Attach the decoded payload (user data) to the request object
  
       // Step 2: Check if the user has any of the required roles
-      const userRoles = req.user.roles || [];
-      const hasRequiredRole = userRoles.some((role) =>
-        requiredRoles.includes(role)
-      );
+      const userRoles = req.user.payload.role || [];
+      const hasRequiredRole = requiredRoles.some((role) => userRoles.includes(role));
       if (hasRequiredRole) {
         return next(); // User has at least one of the required roles, so proceed
       } else {
@@ -94,17 +92,17 @@ function verifyRole(requiredRoles) {
  
 function restrictProfessorToOwnData(req, res, next) {
   if (
-    req.user.roles.includes(ROLES.PROFESSOR) &&
-    req.user.id !== req.params.id
-  ) {
+    req.user.payload.role.includes(ROLES.PROFESSOR) && req.user.payload.id !== req.params.id) {
     return res.status(403).json({
       message: "Access forbidden: You can only access your own data",
     });
   }
   next();
 }
-
+ 
 module.exports = {
   verifyRole,
   restrictProfessorToOwnData,
-}; 
+};
+ 
+ 

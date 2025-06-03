@@ -37,7 +37,7 @@ catch(error) {
 });
  
 // GET - Get all students
-router.get("/", verifyRole([ROLES.ADMIN, ROLES.PROFESSOR, ROLES.AUTH_SERVICE]), async (req, res) => {
+router.get("/", verifyRole([ROLES.ADMIN, ROLES.PROFESSOR, ROLES.AUTH_SERVICE,ROLES.ENROLLMENT_SERVICE]), async (req, res) => {
     try {
         const students = await Student.find();
         return res.status(200).json(students);

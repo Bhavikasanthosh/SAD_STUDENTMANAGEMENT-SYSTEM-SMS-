@@ -26,8 +26,23 @@ router.post(
           .status(400)
           .json({ message: "Student and Course are required" });
       }
-      //TODO
-    } catch (error) {
+        //check for student
+        const students = fetchStudents();
+        const existingStudent = students.find((s)=> s._id === students);
+        if(!existingStudent) {
+          return res.status(400).json({message: " student not found"});
+        }
+
+        //check for courses
+        const courses = fetchCourses();
+        const existingCourses = courses.find((c)=> c._id === courses);
+        if(!existingCourse) {
+          return res.status(400).json({message: " course not found"});
+        }
+        //create an enrollment
+        const enrollment= new Enrollment({student,course});
+        await enrollment.save();
+     } catch (error) {
       console.log(error);
 
       res.status(500).json({
