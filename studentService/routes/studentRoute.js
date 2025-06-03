@@ -12,12 +12,12 @@ router.post("/", async (req,res) => {
     const {name, email, password} =req.body
 // const name = req.body.name;
 // const email = req.body.email;
- 
 if (!name || !email || !password) {
     return res
     .status(400)
     .json({message: "Provide name, email, password"});
 }
+ 
  
 //Create Student
 try {
@@ -28,53 +28,46 @@ try {
     }
     const newStudent= new Student({ name, email, password});
     const savedStudent = await newStudent.save();
-    return res.status(201).json(savedStudent);
+    return res.status(201).json({ message: "Student created successfully", student: savedStudent });
 }
 catch(error) {
-    return res.status(500).json({message: "unable to create student"});
+    return res.status(500).json({message: "unable to create student", error: error.message});
 }
  
 });
  
 // GET - Get all students
-router.get("/", verifyRole([ROLES.ADMIN, ROLES.PROFESSOR, ROLES.AUTH_SERVICE]),
-async (req, res) => {
+router.get("/", verifyRole([ROLES.ADMIN, ROLES.PROFESSOR, ROLES.AUTH_SERVICE]), async (req, res) => {
     try {
         const students = await Student.find();
         return res.status(200).json(students);
     } catch (error) {
-        return res.status(500).json({ message: "Unable to find students" });
+        return res.status(500).json({ message: "Unable to find students", error: error.message });
     }
 });
  
-// GET - Get one student by email
-router.get("/:email", verifyRole([ROLES.ADMIN, ROLES.PROFESSOR, ROLES.STUDENT]),
-async (req, res) => {
-    const {email} = req.params;
+// GET - Get one student by ID
+router.get("/:id", verifyRole([ROLES.ADMIN, ROLES.PROFESSOR, ROLES.STUDENT]),restrictStudentToOwnData, async (req, res) => {
+    const { id } = req.params;
     try {
-        const student = await Student.findOne({email});
+        const student = await Student.findById(id);
         if (!student) {
             return res.status(404).json({ message: "Student not found" });
         }
         return res.status(200).json(student);
     } catch (error) {
-        return res.status(500).json({ message: "Unable to find student" });
+        return res.status(500).json({ message: "Error finding student",error: error.message });
     }
 });
  
-// PUT/PATCH - Update student by email
-router.put("/:email", verifyRole([ROLES.ADMIN, ROLES.PROFESSOR, ROLES.STUDENT]),
-async (req, res) => {
-    const { email } = req.params;
-    const { name, password } = req.body;
- 
-    if (!name || !password) {
-        return res.status(400).json({ message: "Provide name and password to update" });
-    }
+// PUT/PATCH - Update student by ID
+router.put("/:id", verifyRole([ROLES.ADMIN, ROLES.PROFESSOR, ROLES.STUDENT]),restrictStudentToOwnData, async (req, res) => {
+    const { id } = req.params;
+    const { name, email, password } = req.body;
  
     try {
-        const updatedStudent = await Student.findOneAndUpdate(
-            { email },
+        const updatedStudent = await Student.findByIdAndUpdate(
+            id,
             { name, email, password },
             { new: true, runValidators: true }
         );
@@ -83,16 +76,17 @@ async (req, res) => {
         }
         return res.status(200).json(updatedStudent);
     } catch (error) {
-        return res.status(500).json({ message: "Unable to update student" });
+        console.log(error.message)
+        return res.status(500).json({ message: "Error updating student" });
     }
 });
  
 // PATCH - update particular field/Partial Update
-router.patch("/:email", async (req, res) => {
-    const { email } = req.params;
+router.patch("/:id",verifyRole([ROLES.ADMIN, ROLES.PROFESSOR, ROLES.STUDENT]),restrictStudentToOwnData, async (req, res) => {
+    const { id } = req.params;
     try {
-        const updatedStudent = await Student.findOneAndUpdate(
-            { email },
+        const updatedStudent = await Student.findByIdAndUpdate(
+            id,
             { $set: req.body },
             { new: true, runValidators: true }
         );
@@ -101,68 +95,26 @@ router.patch("/:email", async (req, res) => {
         }
         return res.status(200).json(updatedStudent);
     } catch (error) {
-        return res.status(500).json({ message: "Unable to update student" });
+        return res.status(500).json({ message: "Error updating student" });
     }
 });
  
  
-// DELETE - Remove student by email
-router.delete("/:email", verifyRole([ROLES.ADMIN, ROLES.PROFESSOR, ROLES.STUDENT]),
-async (req, res) => {
-    const { email } = req.params;
+// DELETE - Remove student by ID
+router.delete("/:id", verifyRole([ROLES.ADMIN, ROLES.PROFESSOR, ROLES.STUDENT]),restrictStudentToOwnData, async (req, res) => {
+    const { id } = req.params;
     try {
-        const deletedStudent = await Student.findOneAndDelete({ email });
+        const deletedStudent = await Student.findByIdAndDelete(id);
         if (!deletedStudent) {
             return res.status(404).json({ message: "Student not found" });
         }
         return res.status(200).json({ message: "Student deleted successfully" });
     } catch (error) {
-        return res.status(500).json({ message: "Error deleting student" });
+        return res.status(500).json({ message: "Error deleting student",error: error.message });
     }
 });
  
  
 module.exports = router;
- 
- 
-const jwt = require("jsonwebtoken");
-const dotenv = require("dotenv");
-const axios = require("axios");
-const { ROLES } = require("../../../consts");
- 
-dotenv.config();
- 
-async function fetchJWKS(jku) {}
- 
-function getPublicKeyFromJWKS(kid, keys) {
-  const key = keys.find((k) => k.kid === kid);
- 
-  if (!key) {
-    throw new Error("Unable to find a signing key that matches the 'kid'");
-  }
- 
-  return `-----BEGIN PUBLIC KEY-----\n${key.n}\n-----END PUBLIC KEY-----`;
-}
- 
-async function verifyJWTWithJWKS(token) {}
- 
-// Role-based Access Control Middleware
-function verifyRole(requiredRoles) {
-  return async (req, res, next) => {
-    const token = req.headers.authorization && req.headers.authorization.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ message: "Authorization token is missing" });
-    }
-    // TODO: Add role verification logic here
-    next();
-  };
-}
- 
-function restrictStudentToOwnData(req, res, next) {}
- 
-module.exports = {
-  verifyRole,
-  restrictStudentToOwnData,
-};
  
  
