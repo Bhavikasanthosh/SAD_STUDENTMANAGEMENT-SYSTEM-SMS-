@@ -8,6 +8,7 @@ const {
   PROFESSOR__SERVICE,
   ROLES,
 } = require("../../../consts");
+const {getCorrelationId} = require("../../../correlationId"); 
  
 dotenv.config();
  
@@ -53,7 +54,7 @@ async function fetchStudents() {
   const response = await axios.get(STUDENT_SERVICE, {
     headers: {
       Authorization: `Bearer ${token}`,
-      "x-corelation-id": "getcorelation-id", // Example correlation ID
+      "x-corelation-id": "getcorrelationId", // Example correlation ID
     },
   });
   return response.data;

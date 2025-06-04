@@ -2,8 +2,10 @@ const jwt = require("jsonwebtoken");
 const dotenv = require("dotenv");
 const axios = require("axios");
 const { ROLES } = require("../../../consts");
+const rateLimit = require("express-rate-limit");
  
 dotenv.config();
+
  
 async function fetchJWKS(jku) {
   const response = await axios.get(jku);
@@ -70,10 +72,20 @@ function restrictStudentToOwnData(req, res, next) {
   next(); // User is accessing their own data, Proceed to the next middleware or route handler
 }
  
- 
+const jwtRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // Limit each IP to 10 requests per windowMs
+  message: "Too many requests, please try again later.",
+  headers: true, 
+  keyGenerator:(req)=>req.user.id, //use the user id from the jet as the key token
+  handler: (req, res) => {
+     res.status(429).json({ message: "Too many requests, please try again later." });
+  },
+});
 module.exports = {
   verifyRole,
   restrictStudentToOwnData,
+  jwtRateLimiter,
 };
  
  
