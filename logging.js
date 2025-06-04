@@ -17,10 +17,10 @@ const esTransport = (appName) => {
   let transporter = {
     level: "info", // Minimum log level to send to Elasticsearch
     clientOpts: {
-      node: "<yourelasticsearchendpoint>:9243",
+      node: "https://fdc82213d2ae4832b85139bb158016b4.us-central1.gcp.cloud.es.io:9243",
       auth: {
         username: "elastic",
-        password: "your password",
+        password: "GGxulBncT2bc4N5vLg1DNcaZ",
       },
     },
     indexPrefix: "sms-logs", // Logs will be stored in indices like "nodejs-logs-YYYY.MM.DD"
@@ -58,4 +58,7 @@ const createDynamicLogger = (appName) => {
   return logger;
 };
 let authServiceLogger = createDynamicLogger("authService");
-module.exports = { authServiceLogger };
+let studentServiceLogger = createDynamicLogger("studentService");
+let professorServiceLogger = createDynamicLogger("professorService");
+let courseServiceLogger = createDynamicLogger("courseService");
+module.exports = { authServiceLogger, studentServiceLogger, professorServiceLogger, courseServiceLogger };

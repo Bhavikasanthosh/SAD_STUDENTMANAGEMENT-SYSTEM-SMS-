@@ -90,7 +90,16 @@ async function verifyJWTWithJWKS(token) {
 
 //TODO: Handle the private key generation
 // Generate a JWT using the private key
+
+/**
+ * 
+ * @param {object} payload - for jwt 
+ * @returns {string} - The generated JWT token.
+ */
 function generateJWTWithPrivateKey(payload) {
+  if (!privateKey) {
+    throw new Error("Private key is not defined");
+  }
   // Sign the JWT using RS256 (asymmetric encryption)
   const token = jwt.sign(payload, privateKey, {
     algorithm: "RS256",
@@ -179,4 +188,15 @@ module.exports = {
   restrictStudentToOwnData,
   fetchStudents,
   fetchCourses,
+  generateJWTWithPrivateKey,
+  verifyJWTWithJWKS,
+  axiosInstance,
+  publicKey,
+  privateKey,
+  fetchJWKS,
+  getPublicKeyFromJWKS,
+  customHeaders,
+  ROLES,
+  STUDENT_SERVICE,
+  COURSE_SERVICE,
 };

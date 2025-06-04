@@ -1,16 +1,20 @@
 const express = require("express");
 const dotenv = require("dotenv");
 
+
 const publicKeyRoute = require("./routes/auth/publicKeyRoute");
 const loginRoute = require("./routes/auth/loginRoute");
+const { correlationIdMiddleware } = require("../correlationId");
 
 dotenv.config();
 
 // Initialize express app
 const app = express();
 
+
 // Middleware
 app.use(express.json());
+app.use( correlationIdMiddleware); // Middleware to handle correlation IDs
 
 // Public Key
 app.use("/.well-known/jwks.json", publicKeyRoute);   //stores the public key

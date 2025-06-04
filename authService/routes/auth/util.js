@@ -53,6 +53,7 @@ async function fetchStudents() {
   const response = await axios.get(STUDENT_SERVICE, {
     headers: {
       Authorization: `Bearer ${token}`,
+      "x-corelation-id": "getcorelation-id", // Example correlation ID
     },
   });
   return response.data;

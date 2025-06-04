@@ -4,6 +4,7 @@ const Student = require("../models/student");
  
 const { verifyRole, restrictStudentToOwnData } = require("./auth/util");
 const { ROLES } = require("../../consts");
+const { log } = require("winston");
  
 const router = express.Router();
  
@@ -40,6 +41,7 @@ catch(error) {
 router.get("/", verifyRole([ROLES.ADMIN, ROLES.PROFESSOR, ROLES.AUTH_SERVICE,ROLES.ENROLLMENT_SERVICE]), async (req, res) => {
     try {
         const students = await Student.find();
+        logger.info("fetched student using auth service"); //student fetched using auth service
         return res.status(200).json(students);
     } catch (error) {
         return res.status(500).json({ message: "Unable to find students", error: error.message });

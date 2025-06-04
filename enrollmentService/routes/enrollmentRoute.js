@@ -27,21 +27,26 @@ router.post(
           .json({ message: "Student and Course are required" });
       }
         //check for student
-        const students = fetchStudents();
-        const existingStudent = students.find((s)=> s._id === students);
+        const students = await fetchStudents();
+        const existingStudent = students.find((s)=> s._id === student);
         if(!existingStudent) {
           return res.status(400).json({message: " student not found"});
         }
 
         //check for courses
-        const courses = fetchCourses();
-        const existingCourses = courses.find((c)=> c._id === courses);
+        const courses = await fetchCourses();
+        const existingCourses = courses.find((c)=> c._id === course);
         if(!existingCourse) {
           return res.status(400).json({message: " course not found"});
         }
         //create an enrollment
         const enrollment= new Enrollment({student,course});
         await enrollment.save();
+
+        res.status(201).json({
+          message: "Enrollment created successfully",
+          enrollment,
+        });
      } catch (error) {
       console.log(error);
 
@@ -57,7 +62,7 @@ router.get(
   verifyRole([ROLES.ADMIN, ROLES.PROFESSOR]),
   async (req, res) => {
     try {
-      let enrollments = await Enrollment.find();
+      let enrollments = await Enrollment.find().populate("student", "name email").populate("course", "title description");
       res.status(200).json(enrollments);
     } catch (error) {
       res.status(500).json({
@@ -73,10 +78,25 @@ router.get(
   verifyRole([ROLES.ADMIN, ROLES.PROFESSOR]),
   async (req, res) => {
     try {
-      //TODO
+
+      const id = req.params.id;
+      const enrollment = await Enrollment.findById({id}).populate("student", "name email").populate("course", "title description"); 
+      if (!enrollment) {
+        return res.status(404).json({ message: "Enrollment not found" });
+      }
+      if (req.user.roles.includes(ROLES.STUDENT) && enrollment.student._id.toString() !== req.user.userId) {
+             return res.status(403).json({ message: "Access forbidden: You can only view your own enrollments." });
+        }
+ 
+        return res.status(200).json(enrollment);
     } catch (error) {
+      console.error("Error fetching enrollment by ID:", error);
+       if (error.kind === 'ObjectId') {
+            return res.status(400).json({ message: "Invalid enrollment ID format" });
+      }
       res.status(500).json({
         message: "Server Error: Unable to fetch enrollment",
+        error: error.message
       });
     }
   }
@@ -89,9 +109,7 @@ router.get(
   restrictStudentToOwnData,
   async (req, res) => {
     try {
-      let enrollments = await Enrollment.find({
-        student: req.params.id,
-      });
+      let enrollments = await Enrollment.find({student: req.params.id,}).populate("course", "title description");
 
       if (!enrollments.length) {
         return res
@@ -99,17 +117,17 @@ router.get(
           .json({ message: "No enrollments found for this student" });
       }
 
-      const courses = await fetchCourses();
-      enrollments = enrollments.map((enrollment) => {
-        const enrollmentObj = enrollment.toObject(); // Convert to plain object if it's a Mongoose document
-        const course = courses.find(
-          (course) => course._id.toString() === enrollmentObj.course.toString()
-        );
-        if (course) {
-          enrollmentObj.course = course; // Replace course ID with the full course object
-        }
-        return enrollmentObj;
-      });
+      // const courses = await fetchCourses();
+      // enrollments = enrollments.map((enrollment) => {
+      //   const enrollmentObj = enrollment.toObject(); // Convert to plain object if it's a Mongoose document
+      //   const course = courses.find(
+      //     (course) => course._id.toString() === enrollmentObj.course.toString()
+      //   );
+      //   if (course) {
+      //     enrollmentObj.course = course; // Replace course ID with the full course object
+      //   }
+      //   return enrollmentObj;
+      // });
 
       res.status(200).json(enrollments);
     } catch (error) {
@@ -127,6 +145,11 @@ router.get(
   async (req, res) => {
     try {
       //TODO
+      const courseId = req.params.id;
+      let enrollments = await Enrollment.find({course: req.params.id,}).populate("student", "name email");
+      if (!enrollments) {
+        return res.status(404).json({ message: "No enrollments found for this course" });
+      }
       res.status(200).json(enrollments);
     } catch (error) {
       res.status(500).json({
@@ -147,6 +170,10 @@ router.delete(
       if (!enrollment) {
         return res.status(404).json({ message: "Enrollment not found" });
       }
+      if( req.user.roles.includes(ROLES.STUDENT) && enrollment.student.toString() !== req.user.userId) {
+        return res.status(403).json({ message: "Access forbidden: You can only delete your own enrollments." });
+      }
+      await enrollment.findByIdAndDelete(enrollment._id);
 
       res
         .status(200)
