@@ -75,7 +75,7 @@ router.get(
 // Get a specific enrollment by ID
 router.get(
   "/:id",
-  verifyRole([ROLES.ADMIN, ROLES.PROFESSOR]),
+  verifyRole([ROLES.ADMIN, ROLES.PROFESSOR, ROLES.STUDENT]),
   async (req, res) => {
     try {
 
@@ -84,7 +84,7 @@ router.get(
       if (!enrollment) {
         return res.status(404).json({ message: "Enrollment not found" });
       }
-      if (req.user.roles.includes(ROLES.STUDENT) && enrollment.student._id.toString() !== req.user.userId) {
+      if (req.user.roles.includes(ROLES.STUDENT) && enrollment.student._id.toString() !== req.user.id) {
              return res.status(403).json({ message: "Access forbidden: You can only view your own enrollments." });
         }
  
@@ -162,7 +162,7 @@ router.get(
 // Delete an enrollment by ID
 router.delete(
   "/:id",
-  verifyRole([ROLES.ADMIN, ROLES.PROFESSOR]),
+  verifyRole([ROLES.ADMIN, ROLES.PROFESSOR,ROLES.STUDENT]),
   async (req, res) => {
     try {
       const enrollment = await Enrollment.findByIdAndDelete(req.params.id);
@@ -170,10 +170,10 @@ router.delete(
       if (!enrollment) {
         return res.status(404).json({ message: "Enrollment not found" });
       }
-      if( req.user.roles.includes(ROLES.STUDENT) && enrollment.student.toString() !== req.user.userId) {
+      if( req.user.roles.includes(ROLES.STUDENT) && enrollment.student.toString() !== req.user.id) {
         return res.status(403).json({ message: "Access forbidden: You can only delete your own enrollments." });
       }
-      await enrollment.findByIdAndDelete(enrollment._id);
+      await enrollment.findByIdAndDelete(req.params.id);
 
       res
         .status(200)
