@@ -8,7 +8,7 @@ const {
   fetchProfessors,
 } = require("./util");
 const { ROLES } = require("../../../consts");
-const {authServiceLogger: logger} = require("../../../logging");
+const {authServiceLogger: logger, authServiceLogger} = require("../../../logging");
 const router = express.Router();
 dotenv.config();
  
@@ -26,14 +26,14 @@ router.post("/student", async (req, res) => {
     const student = students.find((student) => student.email === email);
  
     if (!student) {
-      logger.error(`Student with email ${email} not found`);
+      authServiceLogger.error(`Student with email ${email} not found`);
       return res.status(401).json({ message: "Invalid email or password" });
     }
  
     //compare the password
     const isMatch = await bcrypt.compare(password, student.password);
     if (!isMatch) {
-      logger.error(`Password mismatch for student with email ${email}`);
+      // logger.error(`Password mismatch for student with email ${email}`);
       return res.status(401).json({ message: "Invalid email or password" });
     }
  
@@ -41,7 +41,7 @@ router.post("/student", async (req, res) => {
     //Generate JWT Token
     const payload = {id: student._id, role: ROLES.STUDENT,};
     const token = generateJWTWithPrivateKey ({payload});
-    logger.info(`Student with email ${email} logged in successfully`);
+    // logger.info(`Student with email ${email} logged in successfully`);
     return res.status(200).json({accessToken: token});
  
     } catch (error) {

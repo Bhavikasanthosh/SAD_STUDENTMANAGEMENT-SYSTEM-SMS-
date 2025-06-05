@@ -5,6 +5,7 @@ const Student = require("../models/student");
 const { verifyRole, restrictStudentToOwnData, jwtRateLimiter } = require("./auth/util");
 const { ROLES } = require("../../consts");
 const { log } = require("winston");
+const { authServiceLogger } = require("../../logging");
  
 const router = express.Router();
  
@@ -43,7 +44,7 @@ jwtRateLimiter,
  async (req, res) => {
     try {
         const students = await Student.find();
-        logger.info("fetched student using auth service"); //student fetched using auth service
+        authServiceLogger.info("fetched student using auth service"); //student fetched using auth service
         return res.status(200).json(students);
     } catch (error) {
         return res.status(500).json({ message: "Unable to find students", error: error.message});
