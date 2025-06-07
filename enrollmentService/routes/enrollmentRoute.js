@@ -35,7 +35,7 @@ router.post(
 
         //check for courses
         const courses = await fetchCourses();
-        const existingCourses = courses.find((c)=> c._id === course);
+        const existingCourse = courses.find((c)=> c._id === course);
         if(!existingCourse) {
           return res.status(400).json({message: " course not found"});
         }
@@ -80,11 +80,11 @@ router.get(
     try {
 
       const id = req.params.id;
-      const enrollment = await Enrollment.findById({id}).populate("student", "name email").populate("course", "title description"); 
+      const enrollment = await Enrollment.findById(id).populate("course","name description");
       if (!enrollment) {
         return res.status(404).json({ message: "Enrollment not found" });
       }
-      if (req.user.roles.includes(ROLES.STUDENT) && enrollment.student._id.toString() !== req.user.id) {
+      if (req.user.roles.includes(ROLES.STUDENT) && enrollment.student.toString() !== req.user.id) {
              return res.status(403).json({ message: "Access forbidden: You can only view your own enrollments." });
         }
  

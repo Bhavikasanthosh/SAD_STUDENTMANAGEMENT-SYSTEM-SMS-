@@ -39,7 +39,7 @@ router.post("/student", async (req, res) => {
  
     //return res.status(200).json({students}); // Verification
     //Generate JWT Token
-    const payload = {id: student._id, role: ROLES.STUDENT,};
+    const payload = {id: student._id, role: [ROLES.STUDENT]};
     const token = generateJWTWithPrivateKey ({payload});
     // logger.info(`Student with email ${email} logged in successfully`);
     return res.status(200).json({accessToken: token});
