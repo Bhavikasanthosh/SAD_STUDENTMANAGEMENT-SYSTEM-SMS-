@@ -127,7 +127,7 @@ function verifyRole(requiredRoles) {
       req.user = decoded; // Attach the decoded payload (user data) to the request object
 
       // Step 2: Check if the user has any of the required roles
-      const userRoles = req.user.roles || [];
+      const userRoles = req.user.payload.role || [];
       const hasRequiredRole = userRoles.some((role) =>
         requiredRoles.includes(role)
       );
@@ -149,8 +149,10 @@ function verifyRole(requiredRoles) {
 
 async function fetchStudents() {
   let token = generateJWTWithPrivateKey({
+    payload: {
     id: ROLES.ENROLLMENT_SERVICE,
-    roles: [ROLES.ENROLLMENT_SERVICE],
+    role: [ROLES.ENROLLMENT_SERVICE],
+    }
   });
   const response = await axiosInstance.get(`${STUDENT_SERVICE}`, {
     headers: {
@@ -162,9 +164,11 @@ async function fetchStudents() {
 
 async function fetchCourses() {
   let token = generateJWTWithPrivateKey({
+    payload: {
     id: ROLES.ENROLLMENT_SERVICE,
-    roles: [ROLES.ENROLLMENT_SERVICE],
-  });
+    role: [ROLES.ENROLLMENT_SERVICE],
+    }  
+});
   const response = await axiosInstance.get(`${COURSE_SERVICE}`, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -174,7 +178,7 @@ async function fetchCourses() {
 }
 
 function restrictStudentToOwnData(req, res, next) {
-  if (req.user.roles.includes(ROLES.STUDENT) && req.user.id !== req.params.id) {
+  if (req.user.payload.role.includes(ROLES.STUDENT) && req.user.payload.id !== req.params.id) {
     return res.status(403).json({
       message: "Access forbidden: You can only access your own data",
     });
